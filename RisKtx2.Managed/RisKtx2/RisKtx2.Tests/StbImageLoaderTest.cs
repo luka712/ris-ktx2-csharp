@@ -1,5 +1,7 @@
 namespace RisKtx2.Tests;
 
+using static Constants;
+
 /// <summary>
 /// Tests for the StbImageLoader class.
 /// </summary>
@@ -7,9 +9,7 @@ namespace RisKtx2.Tests;
 internal class StbImageLoaderTest
 {
     #region Constants
-
-    private const string TEST_PNG = "Data/test.png";
-    private const string LENNA_PNG = "Data/Lenna.png";
+    
     private const string NON_EXISTENT_FILE = "Data/nonexistent.png";
 
     #endregion
@@ -152,6 +152,25 @@ internal class StbImageLoaderTest
         Assert.That(image.Width, Is.GreaterThan(0), "Width should be greater than 0.");
         Assert.That(image.Height, Is.GreaterThan(0), "Height should be greater than 0.");
     }
+    
+    /// <summary>
+    /// Test loading jpg image and returning an StbImage object.
+    /// </summary>
+    [Test]
+    public void Test_LoadJpg_ReturnsStbImage()
+    {
+        var loader = new StbImageLoader();
+
+        var image = loader.Load(CAT_PNG);
+
+        Assert.That(image, Is.Not.Null, "Image should not be null.");
+        Assert.That(image.Width, Is.GreaterThan(0), "Width should be greater than 0.");
+        Assert.That(image.Height, Is.GreaterThan(0), "Height should be greater than 0.");
+        Assert.That(image.Channels, Is.EqualTo(4), "Channels should be 4 for RGBA format.");
+        Assert.That(image.Format, Is.EqualTo(VkFormat.R8G8B8A8_UNORM), "Format should match requested format.");
+        Assert.That(image.Bytes, Is.Not.Null, "Bytes should not be null.");
+        Assert.That(image.Bytes.Length, Is.EqualTo(image.Width * image.Height * 4), "Byte array length should match dimensions.");
+    }
 
     #endregion
 
@@ -180,8 +199,8 @@ internal class StbImageLoaderTest
         var loaderNormal = new StbImageLoader { VerticalFlip = false };
         var loaderFlipped = new StbImageLoader { VerticalFlip = true };
 
-        var normalImage = loaderNormal.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
-        var flippedImage = loaderFlipped.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
+        var normalImage = loaderNormal.Load(TEST_PNG);
+        var flippedImage = loaderFlipped.Load(TEST_PNG);
 
         Assert.That(normalImage.Width, Is.EqualTo(flippedImage.Width), "Widths should match.");
         Assert.That(normalImage.Height, Is.EqualTo(flippedImage.Height), "Heights should match.");
@@ -211,7 +230,7 @@ internal class StbImageLoaderTest
     public void Test_Resize_RawBytes_ResizesCorrectly()
     {
         var loader = new StbImageLoader();
-        var image = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image = loader.Load(TEST_PNG);
 
         int newWidth = image.Width / 2;
         int newHeight = image.Height / 2;
@@ -230,7 +249,7 @@ internal class StbImageLoaderTest
     public void Test_Resize_StbImage_ResizesCorrectly()
     {
         var loader = new StbImageLoader();
-        var image = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image = loader.Load(TEST_PNG);
 
         int newWidth = image.Width / 2;
         int newHeight = image.Height / 2;
@@ -253,7 +272,7 @@ internal class StbImageLoaderTest
     public void Test_Resize_Upscale_ResizesCorrectly()
     {
         var loader = new StbImageLoader();
-        var image = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image = loader.Load(TEST_PNG);
 
         int newWidth = image.Width * 2;
         int newHeight = image.Height * 2;
@@ -274,7 +293,7 @@ internal class StbImageLoaderTest
     public void Test_Resize_MipChain_CreatesValidMipLevels()
     {
         var loader = new StbImageLoader();
-        var image = loader.Load(LENNA_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image = loader.Load(LENNA_PNG);
 
         var mipLevels = new List<StbImage> { image };
         var currentImage = image;
@@ -315,7 +334,7 @@ internal class StbImageLoaderTest
     public void Test_StbImage_Stride_CalculatedCorrectly()
     {
         var loader = new StbImageLoader();
-        var image = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image = loader.Load(TEST_PNG);
 
         Assert.That(image.Stride, Is.EqualTo(image.Width * image.Channels),
             "Stride should equal Width * Channels.");
@@ -333,8 +352,8 @@ internal class StbImageLoaderTest
     {
         var loader = new StbImageLoader();
 
-        var image1 = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
-        var image2 = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image1 = loader.Load(TEST_PNG);
+        var image2 = loader.Load(TEST_PNG);
 
         Assert.That(image1.Width, Is.EqualTo(image2.Width), "Widths should match.");
         Assert.That(image1.Height, Is.EqualTo(image2.Height), "Heights should match.");
@@ -350,8 +369,8 @@ internal class StbImageLoaderTest
     {
         var loader = new StbImageLoader();
 
-        var image1 = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
-        var image2 = loader.Load(LENNA_PNG, VkFormat.R8G8B8A8_UNORM);
+        var image1 = loader.Load(TEST_PNG);
+        var image2 = loader.Load(LENNA_PNG);
 
         // At least one property should be different (dimensions or data)
         bool areDifferent = image1.Width != image2.Width ||

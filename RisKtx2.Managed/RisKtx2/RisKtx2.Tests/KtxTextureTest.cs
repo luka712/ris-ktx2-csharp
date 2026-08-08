@@ -1,4 +1,7 @@
-﻿namespace RisKtx2.Tests
+﻿
+using static RisKtx2.Tests.Constants;
+
+namespace RisKtx2.Tests
 {
     /// <summary>
     /// The KTX texture tests.
@@ -7,9 +10,7 @@
     internal class KtxTextureTest
     {
         #region Constants
-
-        private const string TEST_PNG = "Data/test.png";
-        private const string LENNA_PNG = "Data/Lenna.png"; 
+        
         
         private const string TEST_KTX_BASIS_UASTC = "Data/test_basis_uastc.ktx2";
         private const string TEST_OUTPUT_KTX2 = "Data/test_output.ktx2";
@@ -152,6 +153,28 @@
                     File.Delete(TEST_COMPRESSED_KTX2);
                 }
             }
+        }
+        
+        /// <summary>
+        /// Test compressing a texture to Basis Universal format with maximum quality.
+        /// </summary>
+        [Test]
+        public void Test_Jpg_CompressBasis()
+        {
+                using var texture = CreateAndFillTexture(CAT_PNG, VkFormat.B8G8R8_UNORM);
+
+                // Compress to Basis Universal format with maximum quality
+                texture.CompressBasis(MAX_BASIS_QUALITY);
+
+                // Write compressed texture to a file
+                texture.WriteToNamedFile(TEST_COMPRESSED_KTX2);
+
+                // Verify a file was created
+                Assert.That(File.Exists(TEST_COMPRESSED_KTX2), "Compressed KTX file should exist after writing.");
+
+                var fileInfo = new FileInfo(TEST_COMPRESSED_KTX2);
+                Assert.That(fileInfo.Length, Is.GreaterThan(0),
+                    "Compressed KTX file should have a size greater than 0.");
         }
 
         /// <summary>
@@ -311,20 +334,23 @@
         /// <summary>
         /// Creates a KTX texture from a PNG file and fills it with image data.
         /// </summary>
+        /// <param name="fileName">The file path to load.</param>
+        /// <param name="desiredFormat">The desired format.</param>
         /// <returns>A newly created and filled Ktx2Texture.</returns>
-        private Ktx2Texture CreateAndFillTexture()
+        private Ktx2Texture CreateAndFillTexture(string fileName = TEST_PNG, VkFormat desiredFormat = VkFormat.R8G8B8A8_UNORM)
         {
             // Load image data from PNG file using STB
             StbImageLoader loader = new();
-            var image = loader.Load(TEST_PNG, 4, VkFormat.R8G8B8A8_UNORM);
-            var bytes = image.Bytes; 
+            var image = loader.Load(fileName, 4);
+            var newImage = image.Swizzle(desiredFormat);
+            var bytes = newImage.Bytes;
 
             // Create KTX texture with appropriate format
             var createInfo = new KtxTextureCreateInfo
             {
-                BaseWidth = (uint)image.Width,
-                BaseHeight = (uint)image.Height,
-                VkFormat = VkFormat.R8G8B8A8_UNORM,
+                BaseWidth = (uint)newImage.Width,
+                BaseHeight = (uint)newImage.Height,
+                VkFormat = desiredFormat
             };
 
             var texture = new Ktx2Texture(createInfo, KtxTextureCreateStorage.ALLOC_STORAGE);
@@ -343,7 +369,7 @@
         private Ktx2Texture CreateAlignedTextureWithMipLevels(out int mipLevelCount)
         {
             StbImageLoader loader = new();
-            var level0Image = loader.Load(LENNA_PNG, 4, VkFormat.R8G8B8A8_UNORM);
+            var level0Image = loader.Load(LENNA_PNG, 4);
 
             // Generate mip chain by repeatedly halving dimensions
             var width = level0Image.Width;
@@ -361,13 +387,15 @@
             }
 
             mipLevelCount = mipLevels.Count;
+            
+            var format = level0Image.Channels == 4 ? VkFormat.R8G8B8A8_UNORM : VkFormat.R8G8B8_UNORM;
 
             // Create KTX texture with mip levels
             var createInfo = new KtxTextureCreateInfo
             {
                 BaseWidth = (uint)level0Image.Width,
                 BaseHeight = (uint)level0Image.Height,
-                VkFormat = VkFormat.R8G8B8A8_UNORM,
+                VkFormat = format,
                 NumLevels = (uint)mipLevels.Count,
             };
 
