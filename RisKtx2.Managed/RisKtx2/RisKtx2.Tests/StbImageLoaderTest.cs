@@ -96,7 +96,7 @@ internal class StbImageLoaderTest
     {
         var loader = new StbImageLoader();
 
-        var image = loader.Load(TEST_PNG);
+        var image = loader.Load(TEST_PNG, VkFormat.R8G8B8A8_UNORM);
 
         Assert.That(image, Is.Not.Null, "Image should not be null.");
         Assert.That(image.Width, Is.GreaterThan(0), "Width should be greater than 0.");
@@ -115,7 +115,7 @@ internal class StbImageLoaderTest
     {
         var loader = new StbImageLoader();
 
-        var image = loader.Load(TEST_PNG);
+        var image = loader.Load(TEST_PNG, VkFormat.B8G8R8A8_UNORM);
 
         Assert.That(image, Is.Not.Null, "Image should not be null.");
         Assert.That(image.Format, Is.EqualTo(VkFormat.B8G8R8A8_UNORM), "Format should be B8G8R8A8_UNORM.");
@@ -131,7 +131,7 @@ internal class StbImageLoaderTest
         var loader = new StbImageLoader();
         const int alignment = 4;
 
-        var image = loader.Load(TEST_PNG, alignment);
+        var image = loader.Load(TEST_PNG, alignment, VkFormat.R8G8B8A8_UNORM);
 
         Assert.That(image, Is.Not.Null, "Image should not be null.");
         Assert.That(image.Width % alignment, Is.EqualTo(0), "Width should be aligned to 4.");
@@ -378,6 +378,22 @@ internal class StbImageLoaderTest
                            !image1.Bytes.SequenceEqual(image2.Bytes);
 
         Assert.That(areDifferent, Is.True, "Different images should produce different results.");
+    }
+
+    #endregion
+
+    #region Bug Fixes 
+
+    /// <summary>
+    /// Test with screenshot.png, which was failing in previous releases.
+    /// </summary>
+    [Test]
+    public void Test_Load_Failing_Image_1()
+    {
+        var loader = new StbImageLoader();
+        var image = loader.Load("Data/screenshot.png", 4, VkFormat.R8G8B8A8_UNORM);
+
+        Assert.That(image, Is.Not.Null);
     }
 
     #endregion

@@ -1,25 +1,18 @@
-﻿using System.Runtime.InteropServices;
+﻿using RisKtx2.Utility;
+using System.Runtime.InteropServices;
 
 namespace RisKtx2;
 
 /// <summary>
 /// The StbImageLoader class provides functionality to load images using the stb_image library and convert them into a suitable format.
-/// It handles loading image data from files, extracting pixel data, and performing necessary swizzling to match the desired format. 
+/// It handles loading image data from files, extracting pixel data, and performing necessary swizzling to match the desired format.
 /// This class abstracts away the complexities of image loading and format conversion,
 /// allowing developers to easily integrate image assets into their applications.
 /// </summary>
 public class StbImageLoader
 {
     private const VkFormat DEFAULT_4_CHANNEL_FORMAT = VkFormat.R8G8B8A8_UNORM;
-    private const VkFormat DEFAULT_3_CHANNEL_FORMAT = VkFormat.B8G8R8_UNORM;
-
-    private static readonly Dictionary<VkFormat, int> VkFormatToChannels = new()
-    {
-        [VkFormat.R8G8B8A8_UNORM] = 4,
-        [VkFormat.B8G8R8A8_UNORM] = 4,
-        [VkFormat.R8G8B8_UNORM] = 3,
-        [VkFormat.B8G8R8_UNORM] = 3,
-    };
+    private const VkFormat DEFAULT_3_CHANNEL_FORMAT = VkFormat.R8G8B8_UNORM;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StbImageLoader"/> class.
@@ -85,7 +78,6 @@ public class StbImageLoader
 
         try
         {
-            // Use actual channels from file if desiredChannels is 0
             int actualChannels = desiredChannels > 0 ? desiredChannels : channels;
             int dataSize = width * height * actualChannels;
             byte[] data = new byte[dataSize];
@@ -99,35 +91,47 @@ public class StbImageLoader
     }
 
     /// <summary>
-    /// The low-level call to load an image from a file that returns the image data in the desired format.
+    /// Loads an image using the default RGBA output format.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>The loaded <see cref="StbImage"/>.</returns>
+    public StbImage Load(string filePath)
+    {
+        return Load(filePath, DEFAULT_4_CHANNEL_FORMAT);
+    }
+
+    /// <summary>
+    /// Loads an image in the requested format.
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="desiredFormat">The desired format.</param>
     /// <returns>The loaded <see cref="StbImage"/>.</returns>
-    /// <exception cref="ArgumentException">If the file path is null or empty, or if the format is not supported.</exception>
-    /// <exception cref="FileNotFoundException">If the image file could not be loaded.</exception>
-    public StbImage Load(string filePath)
+    public StbImage Load(string filePath, VkFormat desiredFormat)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
-        }
-        
-        var bytes = Load(filePath, out int width, out int height, out int channels, 0);
-        VkFormat format = GetDefaultFormat(channels);
-        return new StbImage(width, height, channels, bytes, format);
+        return Load(filePath, 0, desiredFormat);
     }
 
     /// <summary>
-    /// The low-level call to load an image from a file that returns the image data in the desired format.
+    /// Loads an image using the default RGBA output format and applies alignment if requested.
     /// </summary>
     /// <param name="filePath">The file path.</param>
-    /// <param name="align">The alignment. This is useful when working with format that need to be aligned, such as when trying to create basis formats. Must be a power of 2.</param>
+    /// <param name="align">The alignment. Must be a power of 2.</param>
+    /// <returns>The loaded <see cref="StbImage"/>.</returns>
+    public StbImage Load(string filePath, int align)
+    {
+        return Load(filePath, align, DEFAULT_4_CHANNEL_FORMAT);
+    }
+
+    /// <summary>
+    /// Loads an image in the requested format and applies alignment if requested.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="align">The alignment. Must be a power of 2.</param>
     /// <param name="desiredFormat">The desired format.</param>
     /// <returns>The loaded <see cref="StbImage"/>.</returns>
     /// <exception cref="ArgumentException">If file path is null or empty, if alignment is invalid, or if the format is not supported.</exception>
     /// <exception cref="FileNotFoundException">If the image file could not be loaded.</exception>
-    public StbImage Load(string filePath, int align)
+    public StbImage Load(string filePath, int align, VkFormat desiredFormat)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
@@ -144,19 +148,30 @@ public class StbImageLoader
             throw new ArgumentException("Alignment must be a power of 2.", nameof(align));
         }
 
-        
-        var bytes = Load(filePath, out int width, out int height, out int channels, 0);
-        
-        if (align > 0)
+        var map = SwizzleUtility.VkFormatToChannels;
+        if (!map.TryGetValue(desiredFormat, out int desiredChannels))
         {
-            bytes = Align(bytes, width, height, channels, align, out width, out height);
+            throw new ArgumentException(
+                $"Unsupported format: {desiredFormat}. Supported formats are: {string.Join(", ", map.Keys)}",
+                nameof(desiredFormat));
         }
 
-        VkFormat format =  GetDefaultFormat(channels);
+        var bytes = Load(filePath, out int width, out int height, out int channels, desiredChannels);
+        int actualChannels = desiredChannels > 0 ? desiredChannels : channels;
+        VkFormat sourceFormat = GetDefaultFormat(actualChannels);
 
-        return new StbImage(width, height, channels, bytes, format);
+        if (desiredFormat != sourceFormat)
+        {
+            bytes = SwizzleUtility.Swizzle(bytes, width, height, actualChannels, desiredFormat);
+        }
+
+        if (align > 0)
+        {
+            bytes = Align(bytes, width, height, actualChannels, align, out width, out height);
+        }
+
+        return new StbImage(width, height, actualChannels, bytes, desiredFormat);
     }
-
 
     /// <summary>
     /// Resizes the image data to the specified output dimensions using stb_image_resize.
@@ -254,7 +269,6 @@ public class StbImageLoader
         outputWidth = (inputWidth + alignment - 1) & ~(alignment - 1);
         outputHeight = (inputHeight + alignment - 1) & ~(alignment - 1);
 
-        // Go through each row and align the data
         var outputBytes = new byte[outputWidth * outputHeight * channels];
         for (int y = 0; y < inputHeight; y++)
         {
@@ -269,14 +283,13 @@ public class StbImageLoader
             {
                 for (int b = 0; b < channels; b++)
                 {
-                    outputBytes[destIndex + i + b] = data[lastSourceIndex + b];
+                    outputBytes[destIndex + b] = data[lastSourceIndex + b];
                 }
 
                 destIndex += channels;
             }
         }
 
-        // Repeat the last row to fill the rest with the output height
         for (int y = inputHeight; y < outputHeight; y++)
         {
             int lastFilledRowIndex = (inputHeight - 1) * outputWidth * channels;
