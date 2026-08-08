@@ -9,7 +9,7 @@ namespace RisKtx2
     /// The class manages the lifecycle of the native KTX texture object, ensuring that resources are properly released when the texture is no longer needed. 
     /// It also includes error handling to provide informative exceptions when operations fail, such as loading or transcoding errors.
     /// </summary>
-    public class Ktx2Texture : IDisposable
+    public class Ktx2Texture : IKtx2Texture
     {
         /// <summary>
         /// The constructor for the KtxTexture class. It attempts to load a KTX texture from the specified file path. 
@@ -24,18 +24,18 @@ namespace RisKtx2
             KtxTextureCreateFlags createFlags = KtxTextureCreateFlags.TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT)
         {
             NativeResolver.Setup();
-            var filePath1 = filePath;
+            FilePath = filePath;
 
             TexturePtr = IntPtr.Zero;
 
-            KtxErrorCode errorCode = ris_ktxTexture2_CreateFromNamedFile(filePath1, createFlags, out IntPtr texture);
+            KtxErrorCode errorCode = ris_ktxTexture2_CreateFromNamedFile(FilePath, createFlags, out IntPtr texture);
             if (errorCode == KtxErrorCode.KTX_FILE_OPEN_FAILED)
             {
-                throw new FileNotFoundException($"The specified KTX file '{filePath1}' could not be found.");
+                throw new FileNotFoundException($"The specified KTX file '{FilePath}' could not be found.");
             }
             else if (errorCode != KtxErrorCode.KTX_SUCCESS)
             {
-                throw new Exception($"Failed to load KTX texture from '{filePath1}'. Error code: {errorCode}");
+                throw new Exception($"Failed to load KTX texture from '{FilePath}'. Error code: {errorCode}");
             }
             TexturePtr = texture;
         }
@@ -70,14 +70,13 @@ namespace RisKtx2
         /// </summary>
         internal IntPtr TexturePtr { get; private set; }
 
-        /// <summary>
-        /// Gets the width of the texture.
-        /// </summary>
+        /// <inheritdoc/>
+        public string? FilePath { get; }
+
+        /// <inheritdoc/>
         public uint Width => ris_ktxTexture2_GetWidth(TexturePtr);
 
-        /// <summary>
-        /// Gets the height of the texture.
-        /// </summary>
+        /// <inheritdoc/>
         public uint Height => ris_ktxTexture2_GetHeight(TexturePtr);
 
         /// <summary>
@@ -157,11 +156,7 @@ namespace RisKtx2
             return ris_ktxTexture2_GetRowPitch(TexturePtr, mipLevel);
         }
 
-        /// <summary>
-        /// Transcode the basis texture to the specified transcoding format.
-        /// </summary>
-        /// <param name="transcodeFormat">The <see cref="KtxTranscodeFormat"/>.</param>
-        /// <param name="transcodeFlags">The <see cref="KtxTranscodeFlags"/>.</param>
+        /// <inheritdoc/>
         public void TranscodeBasis(KtxTranscodeFormat transcodeFormat, KtxTranscodeFlags transcodeFlags = KtxTranscodeFlags.NONE)
         {
             var errorCode = ris_ktxTexture2_TranscodeBasis(TexturePtr, transcodeFormat, transcodeFlags);
@@ -279,16 +274,13 @@ namespace RisKtx2
             }
         }
 
-        /// <summary>
-        /// Compresses the texture using the specified basis parameters.
-        /// </summary>
-        /// <param name="basisParams">The <see cref="KtxBasisParams"/>.</param>
-        public void CompressBasis(KtxBasisParams basisParams)
+        /// <inheritdoc/>
+        public void CompressBasis(IKtxBasisParams basisParams)
         {
             unsafe
             {
                 ris_ktxBasisParams* basisParamsPtr = stackalloc ris_ktxBasisParams[1];
-                *basisParamsPtr = basisParams.ToNative();
+                *basisParamsPtr = KtxBasisParams.ToNative(basisParams);
                 var result = ris_ktxTexture2_CompressBasisEx(TexturePtr, (nint)basisParamsPtr);
 
                 if (result != KtxErrorCode.KTX_SUCCESS)
@@ -298,32 +290,7 @@ namespace RisKtx2
             }
         }
 
-        /// <summary>
-        /// Compresses a KTX2 texture using Basis Universal supercompression.
-        ///
-        /// The source images are encoded into Basis Universal format (typically ETC1S, depending on configuration)
-        /// and stored in a supercompressed form inside the KTX2 container.
-        ///
-        /// This process replaces the original uncompressed image data and updates the texture metadata (including DFD)
-        /// to reflect the new compressed state.
-        ///
-        /// <para/>
-        /// After compression, the texture cannot be directly uploaded to the GPU. It must first be transcoded
-        /// into a GPU-supported block-compressed format (such as ASTC, BC7, or ETC2) before use in rendering APIs.
-        /// </summary>
-        /// <param name="quality">
-        /// Compression quality value in the range 1–255.
-        /// If 0 is provided, a default value of 128 is used by the underlying implementation.
-        /// Lower values produce faster compression and smaller files with lower quality.
-        /// Higher values produce better quality but slower compression and larger output.
-        /// </param>
-        /// <exception cref="Exception">
-        /// Thrown if the Basis compression operation fails.
-        /// </exception>
-        /// <remarks>
-        /// Based on KTX-Software / libktx API:
-        /// https://github.khronos.org/KTX-Software/libktx/group__writer.html#ga405c44d6daf8ddf83dc805810bf4f989
-        /// </remarks>
+        /// <inheritdoc/>
         public void CompressBasis(uint quality = 0)
         {
             if (quality > 255)

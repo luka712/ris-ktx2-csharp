@@ -5,24 +5,9 @@ namespace RisKtx2
     /// <summary>
     /// The parameters for the Basis Universal compression algorithm.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct KtxBasisParams
+    public class KtxBasisParams : IKtxBasisParams
     {
-        /// <summary>
-        /// The constructor.
-        /// </summary>
-        public KtxBasisParams()
-        {
-        }
-
-        /// <summary>
-        /// Encoding speed vs. quality tradeoff.
-        /// Range is [0,5].
-        /// Higher values are slower but give higher quality.
-        /// There is no default.
-        /// Callers must explicitly set this value.
-        /// Currently, this is 2.
-        /// </summary>
+        /// <inheritdoc/>
         public uint CompressionLevel
         {
             get;
@@ -89,7 +74,7 @@ namespace RisKtx2
         /// If both this and preSwizzle are specified, ktxTexture_CompressBasisEx will raise KTX_INVALID_OPERATION.
         /// Usable with both ETC1S and UASTC. 
         /// </summary>
-        public char[] InputSwizzle { get; set; }
+        public char[] InputSwizzle { get; set; } = ['r', 'g', 'b', 'a'];
 
         ///<summary>
         ///Enable Rate Distortion Optimization (RDO) post-processing.
@@ -115,34 +100,32 @@ namespace RisKtx2
         /// Converts this managed KtxBasisParams instance to its native representation (ris_ktxBasisParams) for use in interop calls.
         /// </summary>
         /// <returns>The <see cref="ris_ktxBasisParams"/>.</returns>
-        internal ris_ktxBasisParams ToNative()
+        internal static ris_ktxBasisParams ToNative(IKtxBasisParams basisParams)
         {
             var risKtxBasisParams = new ris_ktxBasisParams()
             {
-                uastc = Uastc ? 1u : 0,
-                uastcFlags = (uint)UastcFlags,
-                qualityLevel = QualityLevel,
-                etc1sCompressionLevel = CompressionLevel,
-                normalMap = NormalMap ? 1u : 0,
-                threadCount = ThreadCount,
-                uastcRDO = UastcRDO ? 1u : 0,
-                uastcRDOQualityScalar = UastcRDOQualityScalar,
-                verbose = Verbose ? 1u : 0,
+                uastc = basisParams.Uastc ? 1u : 0,
+                uastcFlags = (uint)basisParams.UastcFlags,
+                qualityLevel = basisParams.QualityLevel,
+                etc1sCompressionLevel = basisParams.CompressionLevel,
+                normalMap = basisParams.NormalMap ? 1u : 0,
+                threadCount = basisParams.ThreadCount,
+                uastcRDO = basisParams.UastcRDO ? 1u : 0,
+                uastcRDOQualityScalar = basisParams.UastcRDOQualityScalar,
+                verbose = basisParams.Verbose ? 1u : 0,
             };
 
             // Handle the InputSwizzle array. We need to pin it in memory to get a stable pointer for the native code.
-            if (InputSwizzle != null)
+            var inputSwizzle = basisParams.InputSwizzle;
+            if (inputSwizzle.Length != 4)
             {
-                if (InputSwizzle.Length != 4)
-                {
-                    throw new ArgumentException("InputSwizzle must be an array of 4 characters.", nameof(InputSwizzle));
-                }
-
-                risKtxBasisParams.inputSwizzleR = (byte)InputSwizzle[0];
-                risKtxBasisParams.inputSwizzleG = (byte)InputSwizzle[1];
-                risKtxBasisParams.inputSwizzleB = (byte)InputSwizzle[2];
-                risKtxBasisParams.inputSwizzleA = (byte)InputSwizzle[3];
+                throw new ArgumentException("InputSwizzle must be an array of 4 characters.", nameof(InputSwizzle));
             }
+
+            risKtxBasisParams.inputSwizzleR = (byte)inputSwizzle[0];
+            risKtxBasisParams.inputSwizzleG = (byte)inputSwizzle[1];
+            risKtxBasisParams.inputSwizzleB = (byte)inputSwizzle[2];
+            risKtxBasisParams.inputSwizzleA = (byte)inputSwizzle[3];
 
             return risKtxBasisParams;
         }

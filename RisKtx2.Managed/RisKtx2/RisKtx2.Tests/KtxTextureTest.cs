@@ -341,15 +341,16 @@ namespace RisKtx2.Tests
         {
             // Load image data from PNG file using STB
             StbImageLoader loader = new();
-            var image = loader.Load(fileName, 4, desiredFormat);
-            var bytes = image.Bytes; 
+            var image = loader.Load(fileName, 4);
+            var newImage = image.Swizzle(desiredFormat);
+            var bytes = newImage.Bytes;
 
             // Create KTX texture with appropriate format
             var createInfo = new KtxTextureCreateInfo
             {
-                BaseWidth = (uint)image.Width,
-                BaseHeight = (uint)image.Height,
-                VkFormat =desiredFormat
+                BaseWidth = (uint)newImage.Width,
+                BaseHeight = (uint)newImage.Height,
+                VkFormat = desiredFormat
             };
 
             var texture = new Ktx2Texture(createInfo, KtxTextureCreateStorage.ALLOC_STORAGE);
@@ -368,7 +369,7 @@ namespace RisKtx2.Tests
         private Ktx2Texture CreateAlignedTextureWithMipLevels(out int mipLevelCount)
         {
             StbImageLoader loader = new();
-            var level0Image = loader.Load(LENNA_PNG, 4, VkFormat.R8G8B8A8_UNORM);
+            var level0Image = loader.Load(LENNA_PNG, 4);
 
             // Generate mip chain by repeatedly halving dimensions
             var width = level0Image.Width;
@@ -386,13 +387,15 @@ namespace RisKtx2.Tests
             }
 
             mipLevelCount = mipLevels.Count;
+            
+            var format = level0Image.Channels == 4 ? VkFormat.R8G8B8A8_UNORM : VkFormat.R8G8B8_UNORM;
 
             // Create KTX texture with mip levels
             var createInfo = new KtxTextureCreateInfo
             {
                 BaseWidth = (uint)level0Image.Width,
                 BaseHeight = (uint)level0Image.Height,
-                VkFormat = VkFormat.R8G8B8A8_UNORM,
+                VkFormat = format,
                 NumLevels = (uint)mipLevels.Count,
             };
 
