@@ -15,15 +15,13 @@ project** that needs to work with `.ktx2` textures.
 
 ## Repository layout
 
-The repository is split into two cooperating projects:
+This repository contains the C# (.NET 10) bindings only: [`RisKtx2.Managed/`](./RisKtx2.Managed).
+They call into the native `ris_ktx2` shared library via P/Invoke.
 
-| Folder | Language | Audience | Purpose |
-| --- | --- | --- | --- |
-| [`RisKtx2.Native/`](./RisKtx2.Native) | C++20 | **Internal** | Thin C ABI shared library that wraps [KTX-Software](https://github.com/KhronosGroup/KTX-Software) (and a small slice of [`stb_image`](https://github.com/nothings/stb)) into a flat, P/Invoke-friendly surface. Built with CMake + vcpkg. |
-| [`RisKtx2.Managed/`](./RisKtx2.Managed) | C# (.NET 10) | **External** — this is what you consume | High-level, object-oriented C# API (`Ktx2Texture`, `KtxBasisParams`, `StbImageLoader`, …) that calls into the native library via P/Invoke. |
-
-> The C++ project is an implementation detail. End users of the library only
-> need to reference the C# project (or its produced NuGet package / DLLs).
+The native C++ library lives in its own repository,
+[luka712/ris-ktx2-cpp](https://github.com/luka712/ris-ktx2-cpp), which publishes prebuilt
+binaries for every platform as GitHub releases. Build instructions, licenses and the C ABI
+are documented there.
 
 ---
 
@@ -50,16 +48,12 @@ The repository is split into two cooperating projects:
 ### Consuming the C# bindings (most users)
 
 - .NET 10 SDK (see [`RisKtx2.csproj`](./RisKtx2.Managed/RisKtx2/RisKtx2/RisKtx2.csproj))
-- Windows x64 (the repo currently ships `runtimes/win-x64/native/*.dll`).
-  Linux/macOS builds can be produced from the native project — see below.
+- Windows x64, Linux x64 and Linux arm64 (the repo currently ships `runtimes/<rid>/native/` binaries).
+  Other platforms: download the matching archive from the [ris-ktx2-cpp releases](https://github.com/luka712/ris-ktx2-cpp/releases).
 
 ### Building the native library (contributors only)
 
-- A C++20 compiler (MSVC, Clang or GCC)
-- [CMake](https://cmake.org/) ≥ 3.30
-- [vcpkg](https://vcpkg.io/) — used to pull in `ktx`, `vulkan`, `spdlog`,
-  and `catch2` (see [`vcpkg.json`](./RisKtx2.Native/vcpkg.json))
-- A Vulkan SDK installation (headers are required by the KTX library)
+See [ris-ktx2-cpp](https://github.com/luka712/ris-ktx2-cpp#readme).
 
 ---
 
@@ -135,39 +129,19 @@ For more end-to-end examples, see the
 
 ---
 
-## Building the native library
+## Native library
 
-Pre-built Windows x64 DLLs are checked in under
-`RisKtx2.Managed/RisKtx2/RisKtx2/runtimes/win-x64/native/`, so most users do
-**not** need to build the C++ side themselves. If you want to rebuild it (or
-build for Linux / macOS), helper scripts are provided:
-
-```bash
-# Windows (PowerShell)
-RisKtx2.Native/scripts/build_windows.ps1
-
-# Linux
-RisKtx2.Native/scripts/build_linux.sh
-
-# macOS
-RisKtx2.Native/scripts/build_macos.sh
-RisKtx2.Native/scripts/build_macos_release.sh
-```
-
-Each script bootstraps vcpkg dependencies and runs CMake. The resulting
-`ris_ktx2` shared library should be placed alongside the managed assembly
-(typically under `runtimes/<rid>/native/`).
-
-A separate `ris_ktx2_tests` executable is also produced, which runs the
-Catch2-based C++ tests in [`RisKtx2.Native/tests`](./RisKtx2.Native/tests).
+The native binaries are checked in under
+`RisKtx2.Managed/RisKtx2/RisKtx2/runtimes/<rid>/native/`, so most users do **not** need
+to build the C++ side themselves. To update or add a platform, download the archive from the
+[ris-ktx2-cpp releases](https://github.com/luka712/ris-ktx2-cpp/releases) and place the
+`ris_ktx2` shared library under `runtimes/<rid>/native/`.
 
 ---
 
 ## Testing
 
-- **Native (C++) tests** — Catch2, located in
-  [`RisKtx2.Native/tests/`](./RisKtx2.Native/tests). Built automatically by
-  the CMake target `ris_ktx2_tests`.
+- **Native (C++) tests** live in [ris-ktx2-cpp](https://github.com/luka712/ris-ktx2-cpp).
 - **Managed (C#) tests** — NUnit, located in
   [`RisKtx2.Managed/RisKtx2/RisKtx2.Tests/`](./RisKtx2.Managed/RisKtx2/RisKtx2.Tests).
   Run them with:

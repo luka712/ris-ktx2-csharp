@@ -1,2 +1,0 @@
-# COPY test_files
-FILE(COPY test_files DESTINATION ${CMAKE_BINARY_DIR})

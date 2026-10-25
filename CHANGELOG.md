@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0] - {{YYYY-MM-DD}}
+
+### Changed
+- The native C++ library moved to its own repository, [ris-ktx2-cpp](https://github.com/luka712/ris-ktx2-cpp). This repository now contains only the C# bindings.
+
 ## [0.2.1] - {{YYYY-MM-DD}}
 
 ### Fixed
