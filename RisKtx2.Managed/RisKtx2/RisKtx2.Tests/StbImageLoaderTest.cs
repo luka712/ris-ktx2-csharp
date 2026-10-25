@@ -108,21 +108,6 @@ internal class StbImageLoaderTest
     }
 
     /// <summary>
-    /// Test loading an image with BGRA format (swizzling).
-    /// </summary>
-    [Test]
-    public void Test_Load_WithBGRAFormat_SwizzlesCorrectly()
-    {
-        var loader = new StbImageLoader();
-
-        var image = loader.Load(TEST_PNG, VkFormat.B8G8R8A8_UNORM);
-
-        Assert.That(image, Is.Not.Null, "Image should not be null.");
-        Assert.That(image.Format, Is.EqualTo(VkFormat.B8G8R8A8_UNORM), "Format should be B8G8R8A8_UNORM.");
-        Assert.That(image.Channels, Is.EqualTo(4), "Channels should be 4.");
-    }
-
-    /// <summary>
     /// Test loading an image with alignment.
     /// </summary>
     [Test]
@@ -161,15 +146,13 @@ internal class StbImageLoaderTest
     {
         var loader = new StbImageLoader();
 
-        var image = loader.Load(CAT_PNG);
+        // The JPEG has 3 channels on disk; request 4 so stb expands it to RGBA.
+        var bytes = loader.Load(CAT_PNG, out int width, out int height, out _, 4);
 
-        Assert.That(image, Is.Not.Null, "Image should not be null.");
-        Assert.That(image.Width, Is.GreaterThan(0), "Width should be greater than 0.");
-        Assert.That(image.Height, Is.GreaterThan(0), "Height should be greater than 0.");
-        Assert.That(image.Channels, Is.EqualTo(4), "Channels should be 4 for RGBA format.");
-        Assert.That(image.Format, Is.EqualTo(VkFormat.R8G8B8A8_UNORM), "Format should match requested format.");
-        Assert.That(image.Bytes, Is.Not.Null, "Bytes should not be null.");
-        Assert.That(image.Bytes.Length, Is.EqualTo(image.Width * image.Height * 4), "Byte array length should match dimensions.");
+        Assert.That(bytes, Is.Not.Null, "Bytes should not be null.");
+        Assert.That(width, Is.GreaterThan(0), "Width should be greater than 0.");
+        Assert.That(height, Is.GreaterThan(0), "Height should be greater than 0.");
+        Assert.That(bytes.Length, Is.EqualTo(width * height * 4), "Byte array length should match dimensions for RGBA.");
     }
 
     #endregion

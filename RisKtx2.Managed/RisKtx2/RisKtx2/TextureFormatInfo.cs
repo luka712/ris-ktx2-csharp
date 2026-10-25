@@ -27,7 +27,7 @@
 
         /// <summary>
         /// Depth of a single block in pixels.
-        /// Typically 1 for 2D textures. Used for 3D textures.
+        /// Typically, 1 for 2D textures. Used for 3D textures.
         /// </summary>
         public uint BlockDepth { get; }
 
@@ -36,6 +36,14 @@
         /// For example, BC7 uses 16 bytes per 4x4 block.
         /// </summary>
         public uint BytesPerBlock { get; }
+
+        /// <summary>
+        /// Gets the average number of bytes used per pixel (texel).
+        /// For uncompressed formats, this is the actual number of bytes per pixel.
+        /// For compressed formats, this is the average storage cost per pixel
+        /// within a compression block.
+        /// </summary>
+        public double PixelSize => (double)BytesPerBlock / (BlockWidth * BlockHeight * BlockDepth);
 
         /// <summary>
         /// Creates a new <see cref="TextureFormatInfo"/> instance.
@@ -149,5 +157,4 @@
         public static TextureFormatInfo RGBA32 { get; } =
             new TextureFormatInfo(1, 1, 1, 4);
     }
-
 }

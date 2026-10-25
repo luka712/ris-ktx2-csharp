@@ -13,9 +13,9 @@ namespace RisKtx2
             get;
             set
             {
-                if (value > 5)
+                if (value > 6)
                     throw new ArgumentOutOfRangeException(nameof(CompressionLevel),
-                        "CompressionLevel must be in the range [0, 5].");
+                        "CompressionLevel must be in the range [0, 6].");
                 field = value;
             }
         } = KtxConstants.ETC1S_DEFAULT_COMPRESSION_LEVEL;

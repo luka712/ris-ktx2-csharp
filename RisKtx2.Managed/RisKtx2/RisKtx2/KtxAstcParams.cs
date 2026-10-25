@@ -16,7 +16,7 @@ public class KtxAstcParams
     public char[] InputSwizzle { get; set; }
     
     /// <summary>
-    /// TODO:
+    /// If true, the compressor prints progress and diagnostic messages to stdout.
     /// </summary>
     public bool Verbose { get; set; }
     

@@ -38,6 +38,15 @@ namespace RisKtx2.Native
             KtxTextureCreateFlags flags,
             out IntPtr outTexture);
 
+        /// <summary>
+        /// Creates a copy of the specified texture.
+        /// </summary>
+        /// <param name="srcTexture">The source texture.</param>
+        /// <param name="dstTexture">The destination texture.</param>
+        /// <returns>The KTX error code.</returns>
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern KtxErrorCode ris_ktxTexture2_CreateCopy(IntPtr srcTexture, out IntPtr dstTexture);
+
         #endregion
 
         #region Transcoding
@@ -78,17 +87,61 @@ namespace RisKtx2.Native
             IntPtr texture,
             IntPtr basisParams);
 
-        // TODO: doc comment
+        /// <summary>
+        /// Compresses the texture using Basis Universal compression with the specified quality level.
+        /// </summary>
+        /// <param name="texture">The texture pointer.</param>
+        /// <param name="quality">Compression quality in the range 0–255. 0 uses the default quality.</param>
+        /// <returns>The error code indicating success or failure.</returns>
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         internal static extern KtxErrorCode ris_ktxTexture2_CompressBasis(IntPtr texture, uint quality);
 
-        // TODO: doc comment
+        /// <summary>
+        /// Compresses the texture to ASTC with the specified quality level.
+        /// </summary>
+        /// <param name="texture">The texture pointer.</param>
+        /// <param name="quality">Compression quality in the range 0–100.</param>
+        /// <returns>The error code indicating success or failure.</returns>
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         internal static extern KtxErrorCode ris_ktxTexture2_CompressAstc(IntPtr texture, uint quality);
 
-        // TODO: doc comment
+        /// <summary>
+        /// Compresses the texture to ASTC using extended parameters.
+        /// </summary>
+        /// <param name="texture">The texture pointer.</param>
+        /// <param name="astcParams">Pointer to the ASTC compression parameters.</param>
+        /// <returns>The error code indicating success or failure.</returns>
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         internal static extern KtxErrorCode ris_ktxTexture2_CompressAstcEx(IntPtr texture, IntPtr astcParams);
+
+        /// <summary>
+        /// Deflate the data in a ktxTexture2 object using miniz (ZLIB).
+        /// The texture's levelIndex, dataSize, DFD, data pointer, and supercompressionScheme
+        /// will all be updated after successful deflation to reflect the deflated data.
+        /// </summary>
+        /// <param name="texture">The texture pointer.</param>
+        /// <param name="compressionLevel">
+        /// Set speed vs. compression ratio trade-off.
+        /// Values between 1 and 9 are accepted.
+        /// The lower the level, the faster.</param>
+        /// <returns>The ktx error code.</returns>
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern KtxErrorCode ris_ktxTexture2_DeflateZLIB(IntPtr texture, uint compressionLevel);
+
+        /// <summary>
+        /// Deflate the data in a ktxTexture2 object using Zstandard.
+        /// The texture's levelIndex, dataSize, DFD, data pointer, and supercompressionScheme will
+        /// all be updated after successful deflation to reflect the deflated data.
+        /// </summary>
+        /// <param name="texture">The texture pointer.</param>
+        /// <param name="compressionLevel">
+        /// Set speed vs. compression ratio trade-off. Values between 1 and 22 are accepted.
+        /// The lower the level, the faster.
+        /// Values above 20 should be used with caution as they require more memory.
+        /// </param>
+        /// <returns>The ktx error code.</returns>
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern KtxErrorCode ris_ktxTexture2_DeflateZstd(IntPtr texture, uint compressionLevel);
 
         #endregion
 
@@ -199,6 +252,14 @@ namespace RisKtx2.Native
         /// <returns>The supercompression scheme.</returns>
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         internal static extern SupercompressionScheme ris_ktxTexture2_GetSupercompressionScheme(IntPtr texture);
+
+        /// <summary>
+        /// Gets the KHR Data Format color model of the texture.
+        /// </summary>
+        /// <param name="texture">The texture pointer.</param>
+        /// <returns>The color model enum value.</returns>
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern KhrDfModel ris_ktxTexture2_GetColorModel_e(IntPtr texture);
 
         #endregion
 

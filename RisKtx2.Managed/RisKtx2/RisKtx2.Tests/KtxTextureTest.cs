@@ -329,6 +329,122 @@ namespace RisKtx2.Tests
         
         #endregion
 
+        #region ColorModel and CreateCopy Tests
+
+        /// <summary>
+        /// Test that an uncompressed RGBA texture reports the RGBSDA color model.
+        /// </summary>
+        [Test]
+        public void Test_ColorModel_Uncompressed_Is_RGBSDA()
+        {
+            using var texture = CreateAndFillTexture();
+
+            Assert.That(texture.ColorModel, Is.EqualTo(KhrDfModel.RGBSDA),
+                "Uncompressed RGBA texture should use the RGBSDA color model.");
+        }
+
+        /// <summary>
+        /// Test that a texture compressed with Basis UASTC reports the UASTC color model.
+        /// </summary>
+        [Test]
+        public void Test_ColorModel_BasisUastc_Is_UASTC()
+        {
+            using var texture = CreateAndFillTexture();
+
+            Assert.That(texture.ColorModel, Is.EqualTo(KhrDfModel.RGBSDA),
+                "Uncompressed texture should start as RGBSDA.");
+
+            texture.CompressBasis(new KtxBasisParams
+            {
+                Uastc = true,
+                UastcFlags = KtxUastcFlags.LEVEL_DEFAULT,
+            });
+
+            Assert.That(texture.ColorModel, Is.EqualTo(KhrDfModel.UASTC),
+                "After UASTC Basis compression the color model should be UASTC.");
+            Assert.That(texture.NeedsTranscoding, Is.True,
+                "UASTC compressed texture should need transcoding.");
+        }
+
+        /// <summary>
+        /// Test that a texture compressed with Basis ETC1S reports the ETC1S color model.
+        /// </summary>
+        [Test]
+        public void Test_ColorModel_BasisEct1s_Is_ETC1S()
+        {
+            using var texture = CreateAndFillTexture();
+
+            texture.CompressBasis(new KtxBasisParams
+            {
+                QualityLevel = 128,
+                CompressionLevel = 1,
+            });
+
+            Assert.That(texture.ColorModel, Is.EqualTo(KhrDfModel.ETC1S),
+                "After ETC1S Basis compression the color model should be ETC1S.");
+            Assert.That(texture.NeedsTranscoding, Is.True,
+                "ETC1S compressed texture should need transcoding.");
+        }
+
+        /// <summary>
+        /// Test that CreateCopy produces an independent texture with matching properties and data.
+        /// </summary>
+        [Test]
+        public void Test_CreateCopy()
+        {
+            using var original = CreateAndFillTexture();
+            var originalData = original.GetTextureDataAsByteArray();
+
+            using var copy = original.CreateCopy();
+
+            Assert.That(copy, Is.Not.SameAs(original), "Copy should be a different object instance.");
+            Assert.That(copy.Width, Is.EqualTo(original.Width), "Copy width should match original.");
+            Assert.That(copy.Height, Is.EqualTo(original.Height), "Copy height should match original.");
+            Assert.That(copy.VkFormat, Is.EqualTo(original.VkFormat), "Copy VkFormat should match original.");
+            Assert.That(copy.ColorModel, Is.EqualTo(original.ColorModel), "Copy ColorModel should match original.");
+            Assert.That(copy.NumLevels, Is.EqualTo(original.NumLevels), "Copy NumLevels should match original.");
+            Assert.That(copy.DataSize, Is.EqualTo(original.DataSize), "Copy DataSize should match original.");
+
+            var copyData = copy.GetTextureDataAsByteArray();
+            Assert.That(copyData, Is.EqualTo(originalData), "Copy image data should match original.");
+        }
+
+        /// <summary>
+        /// Test that disposing the original does not invalidate a previously created copy.
+        /// </summary>
+        [Test]
+        public void Test_CreateCopy_Independent_Of_Original_Lifetime()
+        {
+            IKtx2Texture copy;
+            uint expectedWidth;
+            uint expectedHeight;
+            byte[] expectedData;
+
+            using (var original = CreateAndFillTexture())
+            {
+                expectedWidth = original.Width;
+                expectedHeight = original.Height;
+                expectedData = original.GetTextureDataAsByteArray();
+                copy = original.CreateCopy();
+            }
+
+            try
+            {
+                Assert.That(copy.Width, Is.EqualTo(expectedWidth),
+                    "Copy should remain valid after original is disposed.");
+                Assert.That(copy.Height, Is.EqualTo(expectedHeight),
+                    "Copy should remain valid after original is disposed.");
+                Assert.That(copy.GetTextureDataAsByteArray(), Is.EqualTo(expectedData),
+                    "Copy data should remain valid after original is disposed.");
+            }
+            finally
+            {
+                copy.Dispose();
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
 
         /// <summary>
@@ -413,4 +529,6 @@ namespace RisKtx2.Tests
 
         #endregion
     }
+    
+    
 }

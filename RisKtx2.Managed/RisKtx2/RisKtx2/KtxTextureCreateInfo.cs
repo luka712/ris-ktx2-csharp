@@ -1,11 +1,11 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace RisKtx2
 {
-
-
-    // This struct should match the native layout exactly
+    /// <summary>
+    /// The KTX2 create info structure.
+    /// Used to describe and create the KTX2 texture object.
+    /// </summary>
     public struct KtxTextureCreateInfo
     {
         /// <summary>

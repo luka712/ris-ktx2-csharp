@@ -12,6 +12,7 @@ public interface IKtxBasisParams
     /// There is no default.
     /// Callers must explicitly set this value.
     /// Currently, this is 2.
+    /// This setting is valid only for ETC1S compression.
     /// </summary>
     public uint CompressionLevel { get; set; }
 
@@ -33,7 +34,7 @@ public interface IKtxBasisParams
     public uint QualityLevel { get; set; }
 
     /// <summary>
-    /// Specifies whether to use UASTC encoding. 
+    /// True to use UASTC base, false to use ETC1S base.
     /// </summary>
     public bool Uastc { get; set; }
 
@@ -62,7 +63,7 @@ public interface IKtxBasisParams
     public char[] InputSwizzle { get; set; }
 
     ///<summary>
-    ///Enable Rate Distortion Optimization (RDO) post-processing.
+    /// Enable Rate Distortion Optimization (RDO) post-processing.
     ///</summary>
     public bool UastcRDO { get; set; }
 
